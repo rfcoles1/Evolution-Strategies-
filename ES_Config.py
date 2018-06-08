@@ -22,10 +22,10 @@ class Config:
 
     num_policies = 100 
     num_episodes = 5000 
+    
+    num_layers = 2 
     num_hidden = 128
     lr = 1e-4
     sigma = 0.1    
     
-
-     
 
