@@ -19,7 +19,7 @@ class Network():
         #output layer 
         self.w_out = np.random.randn(config.a_size,config.num_hidden)/np.sqrt(config.num_hidden)      
         self.num_out = len(self.w_out.flatten())
-        
+       
 
         self.total_num = self.num_in + self.num_out + int(np.sum(self.num_weights))
     
