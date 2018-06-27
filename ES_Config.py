@@ -3,15 +3,21 @@ import gym
 import multiprocessing
 import time
 
-"""
+
 import sys
-sys.path.insert(0,'../')
-import ChemGym
 """
+sys.path.insert(0,'../carnot')
+import cleangym
+"""
+sys.path.insert(0,'../Dumb_Loop')
+import cleangym
+sys.path.insert(0,'..')
+import ChemGym
 
 class Config:
 
-    env_name = 'MountainCar-v0' 
+    env_name = 'CartPole-v0' 
+    mode = 'discrete'
 
     if env_name == 'CartPole-v0' or env_name == 'MountainCar-v0' or env_name == 'Acrobot-v1':
         mode = 'discrete'
@@ -28,8 +34,8 @@ class Config:
         a_range = game.action_space.high - game.action_space.low
 
     num_policies = 100 
-    num_episodes = 10000
-    checkpoint_freq = 1 #number of generations between checkpoints 
+    num_episodes = 1000
+    checkpoint_freq = 5 #number of generations between checkpoints
     num_iterations = 3 #number of games each policy is evaluated for, score is averaged
     
     num_layers = 2 
@@ -41,8 +47,8 @@ class Config:
     model_path = './models/' + str(env_name) + '/' #+ '_' + str(time.ctime()) + '/' 
     if not os.path.exists(model_path):
         os.makedirs(model_path)
-    score_to_solve = -110
+    score_to_solve = 195
     episodes_to_solve = 100
 
     load_model = False
-    
+    version_to_load = '75.npz'

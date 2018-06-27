@@ -22,7 +22,6 @@ class Network():
        
 
         self.total_num = self.num_in + self.num_out + int(np.sum(self.num_weights))
-    
 
     def predict(self, s, w_in, w_out, h_weights):
         h = np.dot(w_in,s) #input to hidden layer
