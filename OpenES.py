@@ -1,6 +1,7 @@
+import os 
+import sys 
 import numpy as np
 import gym
-import os 
 
 from ES_Config import Config
 from ES_Network import Network
@@ -12,19 +13,19 @@ env = gym.make(Config.env_name)
 Reward = np.zeros(config.num_policies)
 sigma = config.min_sigma
 
+#option to load a network
 if config.load_model == True:
     if not os.path.exists(config.model_path + config.version_to_load):
         print 'Model does not exist'
     else:
         weights = np.load(config.model_path + config.version_to_load)
-        print 'Model loaded'
-
+        
         network.w_in = weights['w_in']
-
-        curr = network.num_in
         for i in range(config.num_layers):
             network.weights[i] = weights['w_h'][i]
         network.w_out = weights['w_out']
+
+        print 'Model loaded'
 
 for episode in range(config.num_episodes):
     #generate random variations around original policy
@@ -33,6 +34,7 @@ for episode in range(config.num_episodes):
     #evalate each policy over one episode
     for policy in range(config.num_policies):
 
+        #create new weights by adding random noise to the existing 
         w_in_new = network.w_in + sigma*eps[policy,:network.num_in].reshape(network.w_in.shape)
         
         w_h_new = []
@@ -43,29 +45,21 @@ for episode in range(config.num_episodes):
             curr += network.num_weights[i]
 
         w_out_new = network.w_out + sigma*eps[policy,network.total_num - network.num_out:].reshape(network.w_out.shape)
-        #initial state
+        
+        #evaluate this policy
         Reward[policy] = 0
         for i in range(config.num_iterations):
-            s = env.reset()
-            while True:
-                #perform action based on this policy
-                a = network.predict(s, w_in_new, w_out_new, w_h_new)
-                a = np.argmax(a)
-                s1, reward, done, _ = env.step(a)
-                
-                '''when doing classic control'''
-                Reward[policy] += reward
-                s = s1
-    
-                if done:
-                    break
+            Reward[policy] += network.playthrough(env, w_in_new, w_out_new, w_h_new)
 
     Reward /= config.num_iterations
     print episode, np.mean(Reward), np.max(Reward)
+
+    
     if (episode % config.checkpoint_freq == 0) and (episode != 0):
         #find best policy to see if game is solved
         champ_ind = np.argmax(Reward)
-        
+    
+        #recreate the champion network
         w_in_ch = network.w_in + sigma*eps[champ_ind,:network.num_in].reshape(network.w_in.shape)
         
         w_h_ch = []
@@ -80,32 +74,24 @@ for episode in range(config.num_episodes):
         #see if this network solves the game
         summed_reward = 0
         for i in range(config.episodes_to_solve):
-            s = env.reset()
-            while True:
-                #perform action based on this policy
-                a = network.predict(s, w_in_ch, w_out_ch, w_h_ch)
-                a = np.argmax(a)
-                s1, reward, done, _ = env.step(a)
+            summed_reward += network.playthrough(env, w_in_ch, w_out_ch, w_h_ch)
 
-                '''when doing classic control'''
-                summed_reward += reward
-                s = s1
-    
-                if done:
-                    break
-        
         score = summed_reward/config.episodes_to_solve            
         print 'Average score over ' + \
             str(config.episodes_to_solve) + ' episodes: ' + str(score) 
-        if (score > config.score_to_solve):
+        #if a network beats the game, that network is saved
+        if (score >= config.score_to_solve):
             print 'The game is solve!'
             np.savez(config.model_path + str(episode) + '.npz',\
                 w_in = w_in_ch, w_h = w_h_ch, w_out = w_out_ch)
             break
 
+        sys.stdout.flush()
+
     #if not solved, update the network 
     std = np.std(Reward)
-    if std == 0:
+    if std == 0: #special case where every member of the population returns the same score
+        #in this case, the range of exploration is increased
         if sigma < config.max_sigma:
             sigma += 0.1
     else:   
@@ -122,12 +108,11 @@ for episode in range(config.num_episodes):
             curr += network.num_weights[i]
         network.w_out += weights_update[network.total_num - network.num_out:].reshape(network.w_out.shape)
         
-        sigma = 0.1
+        sigma = config.min_sigma #ensure the exploration is reset
     
-    #saves current network 
+    #updated network is saved
     if (episode % config.checkpoint_freq == 0) and (episode != 0):
         print 'Saved Model'
         np.savez(config.model_path + str(episode) + '.npz',\
             #w_in = network.w_in, w_h = network.weights, w_out = network.w_out)
             w_in = w_in_ch, w_h = w_h_ch, w_out = w_out_ch)
-
