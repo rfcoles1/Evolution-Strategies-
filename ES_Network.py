@@ -32,7 +32,7 @@ class Network():
         h[h<0] = 0 #relu
 
         for i in range(len(h_weights)):
-            hnew = np.dot(self.weights[i],h)
+            hnew = np.dot(h_weights[i],h)
             hnew[hnew<0] = 0  
             h = hnew
 
@@ -40,12 +40,12 @@ class Network():
         out = 1.0/(1.0 + np.exp(-out)) #sigmoid
         return out
 
-    def playthrough(self,env, w_in, w_out, h_weights):
+    def playthrough(self,env, w_in, w_out, w_hidden):
         s = env.reset()
         total_reward = 0
         while True:
             #perform action based on this policy
-            a = self.predict(s, w_in, w_out, h_weights)
+            a = self.predict(s, w_in, w_out, w_hidden)
             
             if self.config.mode == 'discrete':
                 a = np.argmax(a)
